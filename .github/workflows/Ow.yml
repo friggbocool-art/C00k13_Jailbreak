@@ -1,0 +1,83 @@
+
+name: Build IPA
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Find project.yml
+        run: |
+          SPEC=$(find . -name project.yml -not -path "./build/*" | head -n 1)
+
+          if [ -z "$SPEC" ]; then
+            echo "ERROR: project.yml was not found."
+            find . -not -path "./.git/*" -maxdepth 3
+            exit 1
+          fi
+
+          DIR=$(dirname "$SPEC")
+          echo "PROJ_DIR=$DIR" >> "$GITHUB_ENV"
+
+      - name: Generate Xcode project
+        working-directory: ${{ github.workspace }}
+        run: |
+          cd "$PROJ_DIR"
+          xcodegen generate
+
+      - name: Build application
+        working-directory: ${{ github.workspace }}
+        run: |
+          cd "$PROJ_DIR"
+
+          xcodebuild \
+            -project C00k13.xcodeproj \
+            -scheme C00k13 \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Package IPA
+        working-directory: ${{ github.workspace }}
+        run: |
+          cd "$PROJ_DIR"
+
+          APP="build/Build/Products/Release-iphoneos/C00k13.app"
+
+          if [ ! -d "$APP" ]; then
+            echo "ERROR: C00k13.app was not found."
+            find build -name "*.app"
+            exit 1
+          fi
+
+          mkdir -p Payload
+          cp -R "$APP" Payload/
+          zip -qry C00k13.ipa Payload
+
+          cp C00k13.ipa "$GITHUB_WORKSPACE/C00k13.ipa"
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: C00k13-ipa
+          path: C00k13.ipa
+          if-no-files-found: error
