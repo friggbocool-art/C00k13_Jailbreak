@@ -1,0 +1,47 @@
+name: cookie IPA
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Generate project
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Build
+        run: |
+          xcodebuild \
+            -project C00k13.xcodeproj \
+            -scheme C00k13 \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            SWIFT_VERSION=5.0 \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Package IPA
+        run: |
+          APP="build/Build/Products/Release-iphoneos/C00k13.app"
+          test -d "$APP" || { echo "App not found"; find build -name "*.app"; exit 1; }
+          mkdir Payload
+          cp -R "$APP" Payload/
+          zip -qry C00k13.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: C00k13-ipa
+          path: C00k13.ipa
