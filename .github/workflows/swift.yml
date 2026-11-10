@@ -1,0 +1,61 @@
+
+# Build C00k13 iOS IPA
+
+name: C00k13 IPA
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: |
+          if [ ! -f project.yml ]; then
+            echo "ERROR: project.yml is missing from the repository root."
+            exit 1
+          fi
+
+          xcodegen generate
+
+      - name: Build iOS app
+        run: |
+          xcodebuild \
+            -project C00k13.xcodeproj \
+            -scheme C00k13 \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Package IPA
+        run: |
+          APP="build/Build/Products/Release-iphoneos/C00k13.app"
+
+          if [ ! -d "$APP" ]; then
+            echo "ERROR: C00k13.app was not created."
+            exit 1
+          fi
+
+          mkdir Payload
+          cp -R "$APP" Payload/
+          zip -r C00k13.ipa Payload
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: C00k13-IPA
+          path: C00k13.ipa
