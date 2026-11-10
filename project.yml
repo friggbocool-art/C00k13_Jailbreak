@@ -1,0 +1,25 @@
+
+name: C00k13
+
+options:
+  deploymentTarget:
+    iOS: "15.0"
+  createIntermediateGroups: true
+
+targets:
+  C00k13:
+    type: application
+    platform: iOS
+
+    sources:
+      - path: ContentView.swift
+
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.friggbocool.c00k13
+        PRODUCT_NAME: C00k13
+        SWIFT_VERSION: "5.0"
+        IPHONEOS_DEPLOYMENT_TARGET: "15.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: C00k13
